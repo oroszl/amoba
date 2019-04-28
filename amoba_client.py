@@ -35,8 +35,14 @@ while not(data['end_of_game']):
         sock.connect((args.IP, args.port))
         # Send data
         query_from_player = dict(pos=suggest_random_step(data['A']),player=args.player)
-        sock.sendall(pickle.dumps(query_from_player))  
+        sock.sendall(pickle.dumps(query_from_player))
+        # recieve data back from the server
         data = pickle.loads(sock.recv(8192))
+        # the updated data dict contains the following
+        #  - the actual state of the game board 
+        #  - who is next
+        #  - did the game end either False or a touple with information on the winner
+        #  - whether the game was succesfully updated with the suggested step
         sock.close()
     except:
         print('Server disconected.. end of game')
