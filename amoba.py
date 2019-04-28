@@ -2,7 +2,7 @@ import numpy as np
 import bqplot as bq
 from scipy.signal import convolve2d
 class gomoku():
-    '''A simple playable gomoku board class'''
+    '''A simple playable Gomoku board class'''
     def __init__(self):
         '''Initialization of a Gomoku game with an empty board and a random starting party'''
         self.A=np.zeros((15,15),dtype=int) # this holds the information of the current game status
@@ -31,37 +31,17 @@ class gomoku():
         # initially noone is winning
         self.win_string = False
         
-    def check_win_old(self):
-        '''Method to check is someone won.'''
-        win_string = False
-        for i in range(15):
-            if '2 2 2 2 2' in str(self.A[i,:]):
-                win_string = 2,i+1,'row'
-            if '1 1 1 1 1' in str(self.A[i,:]):
-                win_string = 1,i+1,'row'
-            if '2 2 2 2 2' in str(self.A[:,i]):
-                win_string = 2,i+1,'culomn'
-            if '1 1 1 1 1' in str(self.A[:,i]):
-                win_string = 1,i+1,'culomn'
-
-        for i in np.arange(-10,11):
-            if '2 2 2 2 2' in str(np.diag(self.A,i)):
-                win_string = 2,i,'diag'
-            if '1 1 1 1 1' in str(np.diag(self.A,i)):
-                win_string = 1,i,'diag'
-            if '2 2 2 2 2' in str(np.diag(np.rot90(self.A),i)):
-                win_string = 2,i,'pdiag'
-            if '1 1 1 1 1' in str(np.diag(np.rot90(self.A),i)):
-                win_string = 1,i,'pdiag'
-        
-        if win_string:
-            self.fig.title = 'We have a winner: '+['RED ','BLUE '][win_string[0]-1]+str(win_string[1:])
-            
-        self.win_string = win_string
-        return win_string
-    
     def check_win(self):
+        '''Method for checking if we have a winner.'''
         win_string = False
+        # Check if it is a tie
+        zx,zy=np.where(self.A==0)
+        if len(zx)==0:
+            self.who_is_next = 4
+            self.fig.title = 'It is a TIE!'
+            self.win_string = = 0,0,0,0
+            return win_string
+
         # kernels
         rw = np.zeros((5,5),dtype=int) # row kernel 
         rw[2,:] = 1
@@ -82,14 +62,13 @@ class gomoku():
                     win_string = i+1,xi[0],yi[0],j
                     self.win_string = win_string
                     self.fig.title = 'We have a winner: '+['RED ','BLUE '][win_string[0]-1]
-                    orip=[[1,0],[0,1],[1,1],[1,-1]]
+                    orip=[[0,1],[1,0],[1,1],[1,-1]]
                     px,py=orip[j]
                     self.fig.marks[-1].x =  yi[0]+py*np.linspace(-2.5,2.5,10)
                     self.fig.marks[-1].y =  xi[0]+px*np.linspace(-2.5,2.5,10)
                     return win_string
         return win_string
-
-        
+      
     def update_table(self,pos,player,update_figure=True):
         '''Based on a new position and player update the game.'''
         try:
