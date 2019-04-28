@@ -39,7 +39,7 @@ class gomoku():
         if len(zx)==0:
             self.who_is_next = 4
             self.fig.title = 'It is a TIE!'
-            self.win_string = = 0,0,0,0
+            self.win_string = 0,0,0,0
             return win_string
 
         # kernels
@@ -62,7 +62,7 @@ class gomoku():
                     win_string = i+1,xi[0],yi[0],j
                     self.win_string = win_string
                     self.fig.title = 'We have a winner: '+['RED ','BLUE '][win_string[0]-1]
-                    orip=[[0,1],[1,0],[1,1],[1,-1]]
+                    orip=[[1,0],[0,1],[1,1],[1,-1]]
                     px,py=orip[j]
                     self.fig.marks[-1].x =  yi[0]+py*np.linspace(-2.5,2.5,10)
                     self.fig.marks[-1].y =  xi[0]+px*np.linspace(-2.5,2.5,10)
