@@ -44,6 +44,10 @@ while not(data['end_of_game']):
         #  - did the game end either False or a touple with information on the winner
         #  - whether the game was succesfully updated with the suggested step
         sock.close()
+    # handle some errors gracefully      
+    except EOFError:
+        pass
+    # handle end of game this needs some more polish
     except:
         print('Server disconected.. end of game')
         break
