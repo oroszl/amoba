@@ -2,6 +2,7 @@ import socket
 import pickle
 import numpy as np
 import argparse
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--IP', dest='IP',
@@ -32,7 +33,7 @@ def suggest_random_step(A):
 
 
 while not(data['end_of_game']):
-
+    time.sleep(0.1)
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
