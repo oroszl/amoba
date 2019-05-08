@@ -46,7 +46,7 @@ class gomoku():
         self.fig = fig
 
         # the starting player is randomly selected
-        self.who_is_next = np.random.randint(1, 3)
+        self.who_is_next = np.random.choice([1,2])
         who = ['red ', 'blue '][self.who_is_next-1]
         self.fig.title = 'Next player is ' + who
         # initially noone is winning
@@ -129,7 +129,7 @@ class gomoku():
         # noone is winning at the start
         self.win_string = False
         # get a random starting player if not suggested otherwhise
-        self.who_is_next = np.random.randint(1, 3)
+        self.who_is_next = np.random.choice([1,2])
         if starter:
             self.who_is_next = starter
         # reset table data and figure
@@ -153,11 +153,6 @@ class gomoku():
         i = np.random.randint(len(zx))
         return [zx[i], zy[i]]
 
-class amoba_player():
-    '''
-    A container holding player data.
-    '''
-    pass
 
 class amoba_turnament():
     '''
@@ -170,28 +165,24 @@ class amoba_turnament():
         self.player_time = player_time
         game_table = gomoku()
         self.game_table = game_table
-        self.red = amoba_player()
-        self.blue = amoba_player()
 
-        props = dict(min=0,max=number_of_games)
+        props = dict(min=0,max=number_of_games, layout=Layout(width='90%'))
         red_score  = IntProgress(style=dict(bar_color='red'),**props)
         blue_score = IntProgress(style=dict(bar_color='blue'),**props)
-        self.red.score = red_score
-        self.blue.score = blue_score
+        self.scores = [red_score, blue_score]
 
 
-        props = dict(min=0,max=player_time)
+        props = dict(min=0,max=player_time, layout=Layout(width='50%'))
         red_time = FloatProgress(bar_style='warning',**props)
         blue_time = FloatProgress(bar_style='warning',**props)
-        self.red.time = red_time
-        self.blue.time = blue_time
+        self.times = [red_time, blue_time]
 
         gb = GridBox(children=[red_score,
                                red_time,
                                blue_score,
                                blue_time],
         layout=Layout(
-            width='40%',
+            width='100%',
             grid_template_rows='auto auto',
             grid_template_columns='auto auto',
             grid_template_areas=
@@ -202,35 +193,70 @@ class amoba_turnament():
             ))
 
         self.visuals=VBox([game_table.fig,gb])
+        self.stats = []
 
-    def new_game(self,starter=False):
+    def new_game(self, starter=False):
         self.game_table.reset_table(starter)
-        self.red.time.value=self.player_time
-        self.blue.time.value=self.player_time
+        self.times[0].value = self.player_time
+        self.times[1].value = self.player_time
+
+    def __update_stats(self, was_timeout=False):
+        '''
+        Method for updating stats, supposed to be called at the end of game.
+        '''
+        self.stats.append(dict(
+        win_string = self.game_table.win_string,
+        was_timeout = was_timeout,
+        red_time = self.times[0],
+        blue_time = self.times[1],
+            ))
+
+    def __final_report(self):
+        '''
+        Method for final report of turnament,
+        supposed to be called at the end of turnament.
+        '''
+
+        wins = np.array([s['win_string'][0] for s in self.stats])
+        TO = np.array([s['was_timeout'] for s in self.stats])
+        self.game_table.fig.title = 'red: '+ str(sum(wins==1))+\
+                                        '('+str(sum(wins[TO]==1))+')'+\
+                                 ', blue: '+ str(sum(wins==2))+\
+                                        '('+str(sum(wins[TO]==2))+')'
+
 
     def run_dummy_turnament(self):
-        self.red.score.value=0
-        self.blue.score.value=0
+        self.scores[0].value = 0
+        self.scores[1].value = 0
+
 
         for n in range(self.number_of_games):
             # reset time
-            self.new_game(starter=n//5) # half of games is started by red the other half is blue
+            # half of games is started by red the other half is blue
+            self.new_game(starter=n//int(self.number_of_games/2))
+            was_timeout = False
+
             while not(self.game_table.check_win()):
-                time.sleep(0.05)
-                player=['red','blue'][self.game_table.who_is_next-1]
-                eval('self.'+player+'.time').value -= np.random.rand()*10
-                if eval('self.'+player+'.time').value == 0:
+                time.sleep(0.1)
+
+                self.times[self.game_table.who_is_next-1].value -= np.random.rand()*10
+
+                if self.times[self.game_table.who_is_next-1].value == 0:
                     self.game_table.win_string = list({1, 2}.difference({self.game_table.who_is_next}))[0],-1,-1
-                    print('time is up for player '+str(self.game_table.who_is_next))
-                    print('Winner is: '+str(self.game_table.win_string[0]))
+                    was_timeout = True
+                    winner = ['RED ', 'BLUE '][self.game_table.win_string[0]-1]
+                    self.game_table.fig.title = 'We have a winner: ' + winner + "(Timeout)"
                     break
+
                 self.game_table.update_table(self.game_table.suggest_random_step(),
                                              self.game_table.who_is_next)
 
             winner = self.game_table.win_string[0]
-            print('Winner is: '+str(self.game_table.win_string[0]))
+            time.sleep(5)
+
             if winner == 1 :
-                self.red.score.value += 1
+                self.scores[0].value += 1
             if winner == 2 :
-                self.blue.score.value += 1
-        self.game_table.fig.title = 'red: '+ str(self.red.score.value)+', blue: '+str(self.blue.score.value)
+                self.scores[1].value += 1
+            self.__update_stats(was_timeout)
+        self.__final_report()
