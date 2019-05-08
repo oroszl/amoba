@@ -1,7 +1,8 @@
 import numpy as np
 import bqplot as bq
 from scipy.signal import convolve2d
-
+from ipywidgets import GridBox, Layout, VBox, HBox, IntProgress, FloatProgress
+import time
 
 class gomoku():
     '''
@@ -91,7 +92,7 @@ class gomoku():
                     return win_string
         return win_string
 
-    def update_table(self, pos, player, update_figure=True):
+    def update_table(self, pos, player, dt=False, update_figure=True):
         '''
         Based on a new position and player update the game.
         '''
@@ -104,7 +105,7 @@ class gomoku():
 
             if is_empty*am_i_next*game_still_on:
                 self.table[pos[0], pos[1]] = player
-                self.history.append([pos,player])
+                self.history.append([pos,player,dt])
                 self.who_is_next = list({1, 2}.difference({player}))[0]
                 if update_figure:
                     where1 = np.where(np.flipud(self.table) == 1)
@@ -120,15 +121,17 @@ class gomoku():
             print(ex)
             return False
 
-    def reset_table(self):
+    def reset_table(self,starter=False):
         '''
         Method to reset game.
         '''
 
         # noone is winning at the start
         self.win_string = False
-        # get a random starting player
+        # get a random starting player if not suggested otherwhise
         self.who_is_next = np.random.randint(1, 3)
+        if starter:
+            self.who_is_next = starter
         # reset table data and figure
         self.table = np.zeros((15, 15), dtype=int)
         self.history = []
@@ -149,3 +152,85 @@ class gomoku():
             self.fig.title = 'It is a TIE!'
         i = np.random.randint(len(zx))
         return [zx[i], zy[i]]
+
+class amoba_player():
+    '''
+    A container holding player data.
+    '''
+    pass
+
+class amoba_turnament():
+    '''
+    A class for holding information for
+    multiple games of the same two players.
+    '''
+
+    def __init__(self, number_of_games=10, player_time=300):
+        self.number_of_games = number_of_games
+        self.player_time = player_time
+        game_table = gomoku()
+        self.game_table = game_table
+        self.red = amoba_player()
+        self.blue = amoba_player()
+
+        props = dict(min=0,max=number_of_games)
+        red_score  = IntProgress(style=dict(bar_color='red'),**props)
+        blue_score = IntProgress(style=dict(bar_color='blue'),**props)
+        self.red.score = red_score
+        self.blue.score = blue_score
+
+
+        props = dict(min=0,max=player_time)
+        red_time = FloatProgress(bar_style='warning',**props)
+        blue_time = FloatProgress(bar_style='warning',**props)
+        self.red.time = red_time
+        self.blue.time = blue_time
+
+        gb = GridBox(children=[red_score,
+                               red_time,
+                               blue_score,
+                               blue_time],
+        layout=Layout(
+            width='40%',
+            grid_template_rows='auto auto',
+            grid_template_columns='auto auto',
+            grid_template_areas=
+            '''
+            "score_red time_red"
+            "score_blue time_blue"
+            '''
+            ))
+
+        self.visuals=VBox([game_table.fig,gb])
+
+    def new_game(self,starter=False):
+        self.game_table.reset_table(starter)
+        self.red.time.value=self.player_time
+        self.blue.time.value=self.player_time
+
+    def run_dummy_turnament(self):
+        self.red.score.value=0
+        self.blue.score.value=0
+
+        for n in range(self.number_of_games):
+            # reset time
+            self.new_game(starter=n//5) # half of games is started by red the other half is blue
+            while not(self.game_table.check_win()):
+                time.sleep(0.05)
+                player=['red','blue'][self.game_table.who_is_next-1]
+                eval('self.'+player+'.time').value -= np.random.rand()*10
+                if eval('self.'+player+'.time').value == 0:
+                    self.game_table.win_string = list({1, 2}.difference({self.game_table.who_is_next}))[0],-1,-1
+                    print('time is up for player '+str(self.game_table.who_is_next))
+                    print('Winner is: '+str(self.game_table.win_string[0]))
+                    break
+                self.game_table.update_table(self.game_table.suggest_random_step(),
+                                             self.game_table.who_is_next)
+
+            winner = self.game_table.win_string[0]
+            print('Winner is: '+str(self.game_table.win_string[0]))
+            if winner == 1 :
+                self.red.score.value += 1
+            if winner == 2 :
+                self.blue.score.value += 1
+        self.game_table.fig.title = 'red: '+ str(self.red.score.value)+', blue: '+str(self.blue.score.value)
