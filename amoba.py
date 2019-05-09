@@ -1,7 +1,7 @@
 import numpy as np
 import bqplot as bq
 from scipy.signal import convolve2d
-from ipywidgets import GridBox, Layout, VBox, HBox, IntProgress, FloatProgress
+from ipywidgets import Label, GridBox, Layout, VBox, HBox, IntProgress, FloatProgress
 import time
 
 class gomoku():
@@ -165,6 +165,7 @@ class amoba_turnament():
         self.player_time = player_time
         game_table = gomoku()
         self.game_table = game_table
+        self.histories = []
 
         props = dict(min=0,max=number_of_games, layout=Layout(width='90%'))
         red_score  = IntProgress(style=dict(bar_color='red'),**props)
@@ -176,17 +177,21 @@ class amoba_turnament():
         red_time = FloatProgress(bar_style='warning',**props)
         blue_time = FloatProgress(bar_style='warning',**props)
         self.times = [red_time, blue_time]
-
-        gb = GridBox(children=[red_score,
+        time_label = Label(value='Time left')
+        score_label = Label(value='Scores')
+        gb = GridBox(children=[score_label,
+                               time_label,
+                               red_score,
                                red_time,
                                blue_score,
                                blue_time],
         layout=Layout(
             width='100%',
-            grid_template_rows='auto auto',
+            grid_template_rows='auto auto auto',
             grid_template_columns='auto auto',
             grid_template_areas=
             '''
+            "score_label time_label"
             "score_red time_red"
             "score_blue time_blue"
             '''
@@ -226,6 +231,10 @@ class amoba_turnament():
 
 
     def run_dummy_turnament(self):
+        '''
+        Method for running a dummy turnament.
+        '''
+
         self.scores[0].value = 0
         self.scores[1].value = 0
 
@@ -237,21 +246,23 @@ class amoba_turnament():
             was_timeout = False
 
             while not(self.game_table.check_win()):
+                # simulate step with some random calcualtion duration
                 time.sleep(0.1)
-
                 self.times[self.game_table.who_is_next-1].value -= np.random.rand()*10
-
+                # check for timeout
                 if self.times[self.game_table.who_is_next-1].value == 0:
                     self.game_table.win_string = list({1, 2}.difference({self.game_table.who_is_next}))[0],-1,-1
                     was_timeout = True
                     winner = ['RED ', 'BLUE '][self.game_table.win_string[0]-1]
                     self.game_table.fig.title = 'We have a winner: ' + winner + "(Timeout)"
                     break
-
+                # perform step
                 self.game_table.update_table(self.game_table.suggest_random_step(),
                                              self.game_table.who_is_next)
 
             winner = self.game_table.win_string[0]
+
+            self.histories.append(self.game_table.history)
             time.sleep(5)
 
             if winner == 1 :
